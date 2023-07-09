@@ -35,11 +35,13 @@ app.use((req, res, next) => {
 
   next();
 
-  const statusCode = res.statusCode;
+  res.on("finish", () => {
+    const statusCode = res.statusCode;
 
-  const color = res.statusCode >= 400 ? chalk.yellow : chalk.green;
+    const color = res.statusCode >= 400 ? chalk.yellow : chalk.green;
 
-  console.log(color(`[${time}] ${ip} -> ${method} ${path} ${statusCode}`));
+    console.log(color(`[${time}] ${ip} -> ${method} ${path} ${statusCode}`));
+  });
 });
 
 // Middleware to check if the provided password is correct
@@ -93,6 +95,10 @@ app.post(
 
 // File serving endpoint
 app.use("/files", express.static("uploads"));
+
+app.get("*", (req, res) => {
+  res.status(404).send("Not found");
+});
 
 // Start the server
 app.listen(port, () => {
