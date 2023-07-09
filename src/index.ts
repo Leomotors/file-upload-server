@@ -1,9 +1,12 @@
 import "dotenv/config";
 
+import chalk from "chalk";
 import express, { Request, Response } from "express";
 import multer from "multer";
 
 import { rename } from "fs/promises";
+
+process.env.TZ = "Asia/Bangkok";
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
@@ -20,6 +23,25 @@ if (!port) {
   throw new Error("PORT environment variable is not set");
 }
 
+function getIP(req: Request) {
+  return req.headers["cf-connecting-ip"] || req.headers["x-real-ip"] || req.ip;
+}
+
+app.use((req, res, next) => {
+  const time = new Date().toLocaleString("th");
+  const ip = getIP(req);
+  const method = req.method;
+  const path = req.path;
+
+  next();
+
+  const statusCode = res.statusCode;
+
+  const color = res.statusCode >= 400 ? chalk.yellow : chalk.green;
+
+  console.log(color(`[${time}] ${ip} -> ${method} ${path} ${statusCode}`));
+});
+
 // Middleware to check if the provided password is correct
 const checkPassword = (req: Request, res: Response, next: Function) => {
   const providedPassword = req.headers.authorization;
@@ -27,9 +49,6 @@ const checkPassword = (req: Request, res: Response, next: Function) => {
   if (providedPassword === PASSWORD) {
     next();
   } else {
-    console.log(
-      `Unauthorized request from ${req.ip}, provided password: ${providedPassword}`
-    );
     res.status(401).json({ message: "Unauthorized" });
   }
 };
@@ -57,6 +76,14 @@ app.post(
         message: "File uploaded and saved successfully",
         path: `/files/${uploadedFile.originalname}`,
       });
+
+      console.log(
+        chalk.magenta(
+          `[${new Date().toLocaleString(
+            "th"
+          )}] File uploaded: ${destinationPath}`
+        )
+      );
     } catch (err) {
       console.error("Error moving file: ", err);
       res.status(500).json({ message: "Error moving file" });
