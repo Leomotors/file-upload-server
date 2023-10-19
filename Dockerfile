@@ -4,37 +4,38 @@
 # ? Builder: Complile TypeScript to JS
 # ? -------------------------
 
-FROM node:18-alpine as builder
+FROM node:20-alpine as builder
 
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml* ./
-# no need to waste time installing pnpm globally, we only using it once
-RUN npx pnpm -r i --frozen-lockfile
+RUN corepack enable
+RUN pnpm i --frozen-lockfile
 
 # copy sources
 COPY src ./src
 COPY tsconfig.json ./
 
 # compile
-RUN npx pnpm build
+RUN pnpm build
 
 # ? -------------------------
 # ? Deps-prod: Obtaining node_moules that contains just production dependencies
 # ? -------------------------
 
-FROM node:18-alpine as deps-prod
+FROM node:20-alpine as deps-prod
 
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml* ./
-RUN npx pnpm -r i --frozen-lockfile --prod
+RUN corepack enable
+RUN pnpm i --frozen-lockfile --prod
 
 # ? -------------------------
 # ? Runner: Production to run
 # ? -------------------------
 
-FROM node:18-alpine as runner
+FROM node:20-alpine as runner
 
 WORKDIR /app
 

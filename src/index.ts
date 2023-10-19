@@ -42,6 +42,9 @@ app.use((req, res, next) => {
   const ip = getIP(req);
   const method = req.method;
   const path = req.path;
+  const pathDecoded = decodeURIComponent(path);
+
+  const userAgent = req.headers["user-agent"];
 
   next();
 
@@ -50,7 +53,13 @@ app.use((req, res, next) => {
 
     const color = res.statusCode >= 400 ? chalk.yellow : chalk.green;
 
-    console.log(color(`[${time}] ${ip} -> ${method} ${path} ${statusCode}`));
+    console.log(
+      color(
+        `[${time}] ${ip}\n\t${method} ${path}${
+          path !== pathDecoded ? ` (${pathDecoded})` : ""
+        } ${statusCode}\n\tUser-Agent: ${userAgent || "<undefined>"}\n`
+      )
+    );
   });
 });
 
