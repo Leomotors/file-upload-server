@@ -4,12 +4,22 @@ import chalk from "chalk";
 import express, { Request, Response } from "express";
 import multer from "multer";
 
-import { rename } from "fs/promises";
+import { rename, mkdir } from "node:fs/promises";
+import { join, dirname } from "node:path";
 
 process.env.TZ = "Asia/Bangkok";
 
 const app = express();
-const upload = multer({ dest: "uploads/" });
+const upload = multer({
+  dest: "uploads/",
+  // https://stackoverflow.com/questions/72909624/multer-corrupts-utf8-filename-when-uploading-files
+  fileFilter: (_, file, cb) => {
+    file.originalname = Buffer.from(file.originalname, "latin1").toString(
+      "utf8"
+    );
+    cb(null, true);
+  },
+});
 
 const PASSWORD = process.env.PASSWORD;
 
@@ -60,6 +70,7 @@ app.post(
   "/upload",
   checkPassword,
   upload.single("file"),
+
   async (req: Request, res: Response) => {
     const uploadedFile = req.file;
     if (!uploadedFile) {
@@ -67,16 +78,35 @@ app.post(
       return;
     }
 
+    const fileName =
+      (typeof req.body.file_name === "string" && req.body.file_name) ||
+      uploadedFile.originalname;
+
     // Process the uploaded file, e.g., save it to the desired location
     // Example: move the file to the 'uploads' directory with a unique filename
-    const destinationPath = `uploads/${uploadedFile.originalname}`;
+    const destinationPath = join("uploads", fileName);
+
+    // Prevent directory traversal
+    if (!destinationPath.startsWith(join("uploads"))) {
+      res.status(400).json({ message: "Invalid file name" });
+      return;
+    }
+
+    // Create the directory recursively
+    try {
+      await mkdir(dirname(destinationPath), { recursive: true });
+    } catch (err) {
+      console.error("Error creating directory: ", err);
+      res.status(500).json({ message: "Error creating directory" });
+      return;
+    }
 
     // Rename the temporary file to the destination path
     try {
       await rename(uploadedFile.path, destinationPath);
       res.status(200).json({
         message: "File uploaded and saved successfully",
-        path: `/files/${uploadedFile.originalname}`,
+        path: `/files/${fileName}`,
       });
 
       console.log(
