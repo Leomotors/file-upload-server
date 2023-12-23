@@ -2,6 +2,11 @@
 
 Note: Before 2.0 is not there
 
+## [2.0.1] - 2023-12-23
+
+- feat: arm64 image build
+- chore: deps
+
 ## [2.0.0] - 2023-10-19
 
 - fix: support utf-8
