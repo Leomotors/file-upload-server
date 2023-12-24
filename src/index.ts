@@ -51,12 +51,19 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const statusCode = res.statusCode;
 
+    if (path === "/" && userAgent?.startsWith("Uptime-Kuma/")) {
+      if (req.headers.authorization === PASSWORD) {
+        return;
+      }
+
+      console.log("Wild 熊ベア appeared!")
+    }
+
     const color = res.statusCode >= 400 ? chalk.yellow : chalk.green;
 
     console.log(
       color(
-        `[${time}] ${ip}\n\t${method} ${path}${
-          path !== pathDecoded ? ` (${pathDecoded})` : ""
+        `[${time}] ${ip}\n\t${method} ${path}${path !== pathDecoded ? ` (${pathDecoded})` : ""
         } ${statusCode}\n\tUser-Agent: ${userAgent || "<undefined>"}\n`
       )
     );
